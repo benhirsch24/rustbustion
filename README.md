@@ -17,3 +17,7 @@ Run the raspberry pi interface to the ST7789 TFT by simply `python3 display.py`.
 The Rust program uses the [Bluer](https://docs.rs/bluer) library which is the official Rust interface to the BlueZ Linux Bluetooth protocol stack.
 
 I had to [upgrade BlueZ](https://scribles.net/updating-bluez-on-raspberry-pi-from-5-43-to-5-50/) including installing some dependencies.
+
+## Running on Mac
+
+There is a simple implementation for MacOS that returns fake values for the purposes of testing.
