@@ -1,4 +1,4 @@
-use log::{error, info, trace, warn};
+use log::{error, info, warn};
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;

@@ -1,5 +1,25 @@
 # Notes
 
+## X-platform dev & web app
+
+* Took a while to figure out how to do the dependency section in Cargo.toml. ChatGPT was sorta helpful, but ended up still having to go through the docs. Module conditional compilation is also a little weird but I managed to figure it out. Think I can do it better though.
+* Set up a Dockerfile to test that conditional compilation worked which was pretty easy. Ran into some issue setting up bluez probably because Docker doesn't have a translation layer between the VM and the Mac bluetooth layer by default and I don't feel like setting that up. Once I pull this code down on my Raspberry Pi we'll see if it works
+* Using ChatGPT for CDK code was super easy, I love having something I can write plain-english into and give me working code (for simple things)
+* Womp womp, account verification.
+
+### Thoughts on Webapp design
+
+Jotting thoughts down before going on a walk.
+
+* To make it simple each "session" will be a single file that gets appended with updated temps every N seconds (eg 10 seconds).
+* S3 has no append, so we'll have to PutObject and overwrite and keep the data in memory the whole time.
+* Maybe instead we create a folder per session and then limit the length of the files. Each file can be ~100 temps. That way we don't have to worry about super long cooks running out of mem on the Pi.
+* Start out with using the RFC3339 datetime at program start time as the S3 key for now.
+* EC2 instance can just be a T2 micro. Thinking that to start it can be a stupid simple static page (maybe bootstrap or something) and we render it sever-side where on request it reads the latest S3 file, has big text for the last one, then under that lists the previous 5-10 temps in small text.
+* Maybe add an in-mem cache so it doesn't need to hit S3 on each request. This is my money I'm spending not my employer's!
+* Then eventually I could play with graphing libraries and dynamically refreshing. But for something where I expect to load the page once every 15 minutes while I'm out and about and something is cooking I don't think dynamic reloading is necessary, just server-side render it and refresh the page.
+* I like the idea of a generated link, eventually I could consider adding that as a Pi feature. Will have to think about it, "name this cook" feature. Could be a good option to play with the Whisper model on Raspberry Pi to name the S3 bucket key and then hand out the link to friends.
+
 ## Starting out
 
 * Had to update the bluetooth stack on Raspberry Pi (https://scribles.net/updating-bluez-on-raspberry-pi-from-5-43-to-5-50/)
