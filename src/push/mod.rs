@@ -11,7 +11,7 @@ struct Update {
 }
 
 pub struct Pusher {
-    client: Client,
+    client: Option<Client>,
     bucket: String,
     prefix: String,
     key: u32,
@@ -19,20 +19,31 @@ pub struct Pusher {
 }
 
 impl Pusher {
-    pub async fn new(bucket: String, prefix: String) -> Pusher {
-        let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-        let client = Client::new(&config);
-
+    pub fn new() -> Pusher {
         Pusher{
-            client,
-            bucket,
-            prefix,
+            client: None,
+            bucket: String::new(),
+            prefix: String::new(),
             key: 0,
             window: vec![],
         }
     }
 
+    pub async fn init(&mut self, bucket: String, prefix: String) {
+        let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
+        let client = Client::new(&config);
+
+        self.bucket = bucket;
+        self.prefix = prefix;
+        self.client = Some(client);
+    }
+
     pub async fn push(&mut self, t: f32) -> anyhow::Result<()> {
+        if self.client.is_none() {
+            return Ok(());
+        }
+
+        let client = self.client.as_ref().unwrap();
         // If we've exceeded the window size then clear it and increment the key
         if self.window.len() > BATCH_SIZE {
             self.window.clear();
@@ -47,7 +58,7 @@ impl Pusher {
         let key = format!("{}/{}.csv", self.prefix, self.key);
         log::debug!("Uploading {} to {}", obj, key);
 
-        self.client
+        client
             .put_object()
             .bucket(self.bucket.clone())
             .key(key)

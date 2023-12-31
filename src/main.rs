@@ -53,9 +53,9 @@ async fn main() -> anyhow::Result<()> {
 
     let flags = xflags::parse_or_exit! {
         /// Bucket to upload data into
-        required bucket: String
+        optional bucket: String
     };
-    info!("Using bucket {}", flags.bucket);
+    info!("Using bucket {:?}", flags.bucket);
 
     // Listen for Ctrl-C
     let (done_tx, mut done) = tokio::sync::oneshot::channel();
@@ -101,11 +101,15 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Create the Pusher
-    let key = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
-    let mut pusher = Pusher::new(flags.bucket, key).await;
     let (tx, mut rx) = tokio::sync::mpsc::channel(100);
     tokio::spawn(async move {
-        info!("Starting S3 pusher");
+        let mut pusher = Pusher::new();
+        if let Some(bucket) = flags.bucket {
+            let prefix = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+            info!("Starting S3 pusher to {}/{}", bucket, prefix);
+            pusher.init(bucket, prefix).await;
+        }
+
         let mut i = 0;
         while let Some(t) = rx.recv().await {
             // Do something

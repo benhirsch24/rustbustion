@@ -6,7 +6,9 @@ Having fun with the [Combustion Thermometer](https://combustion.inc/)
 
 The bluetooth interface is the Rust program in this repo. It's responsible for talking to the thermometer and exposing the information to wherever it needs to go.
 
-Simply `cargo run` to start the program scanning for the bluetooth accessory.
+Simply `cargo run` to start the program scanning for the bluetooth accessory and print temperature updates.
+
+To push data to an S3 bucket add the bucket name as a parameter: `cargo run <BUCKETNAME>`. It uses the AWS SDK so it will get credentials from the environment.
 
 ## Raspberry Pi Interface
 
