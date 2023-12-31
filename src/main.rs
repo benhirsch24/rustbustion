@@ -1,3 +1,4 @@
+use chrono::prelude::*;
 use log::{error, info, warn};
 use std::sync::{Arc, Mutex};
 
@@ -12,6 +13,9 @@ use std::pin::Pin;
 
 mod combustion;
 use combustion::combustion::CombustionFinder;
+
+mod push;
+use push::Pusher;
 
 fn as_farenheit(c: f32) -> f32 {
     c * 1.8 + 32.0
@@ -47,11 +51,17 @@ async fn main() -> anyhow::Result<()> {
     }
     env_logger::init();
 
+    let flags = xflags::parse_or_exit! {
+        /// Bucket to upload data into
+        required bucket: String
+    };
+    info!("Using bucket {}", flags.bucket);
+
     // Listen for Ctrl-C
-    let (tx, mut done) = tokio::sync::oneshot::channel();
+    let (done_tx, mut done) = tokio::sync::oneshot::channel();
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.expect("ctrlc");
-        tx.send(true).expect("Send ctrlc");
+        done_tx.send(true).expect("Send ctrlc");
     });
 
     let svc = TempSvc{raw_temp: Arc::new(Mutex::new(0.0))};
@@ -90,7 +100,25 @@ async fn main() -> anyhow::Result<()> {
         return Err(e);
     }
 
+    // Create the Pusher
+    let key = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+    let mut pusher = Pusher::new(flags.bucket, key).await;
+    let (tx, mut rx) = tokio::sync::mpsc::channel(100);
+    tokio::spawn(async move {
+        info!("Starting S3 pusher");
+        let mut i = 0;
+        while let Some(t) = rx.recv().await {
+            // Do something
+            if let Err(e) = pusher.push(t).await {
+                error!("Failed to push t={} i={}: {}", t, i, e);
+            }
+            i += 1;
+        }
+    });
+
+    // Poll the thermometer and push the temps into the S3 Pusher
     let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(2000));
+    let mut i = 0;
     loop {
         tokio::select! {
             _ = interval.tick() => {
@@ -100,6 +128,10 @@ async fn main() -> anyhow::Result<()> {
                         {
                             *last_temp.lock().unwrap() = as_farenheit(raw_temp_c);
                         }
+                        if let Err(e) = tx.send(raw_temp_c).await {
+                            error!("Failed to send raw temp={} entry={} to pusher: {}", raw_temp_c, i, e);
+                        }
+                        i += 1;
                     },
                     None => {
                         warn!("Couldn't fetch temp");
