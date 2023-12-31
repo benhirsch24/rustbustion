@@ -2,7 +2,6 @@ use aws_sdk_s3::Client;
 use aws_smithy_types::byte_stream::ByteStream;
 use bytes::Bytes;
 use chrono::prelude::*;
-use log::trace;
 
 const BATCH_SIZE: usize = 5;
 

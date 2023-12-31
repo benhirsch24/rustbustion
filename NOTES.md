@@ -1,5 +1,10 @@
 # Notes
 
+## S3 Pusher
+
+* Pretty easy after getting used to the Rust AWS client.
+* When writing async code, always write synchronous code. By that I mean rarely should you have a method which starts a background task, always write as much synchronous code as possible and then use it from a task.
+
 ## X-platform dev & web app
 
 * Took a while to figure out how to do the dependency section in Cargo.toml. ChatGPT was sorta helpful, but ended up still having to go through the docs. Module conditional compilation is also a little weird but I managed to figure it out. Think I can do it better though.

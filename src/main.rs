@@ -12,7 +12,7 @@ use std::future::Future;
 use std::pin::Pin;
 
 mod combustion;
-use combustion::combustion::CombustionFinder;
+use combustion::CombustionFinder;
 
 mod push;
 use push::Pusher;
