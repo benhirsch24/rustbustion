@@ -7,7 +7,9 @@
 * Eventually got it working. Can see where I'll need to refactor things around and share the update structs. Eventually.
 * Next up is HTML templating
 * Got that working and also refactored a bit which has made things nicer. I'm definitely getting more comfortable with Rust modules which I'm glad about.
-* Now trying to get a single EC2 instance up and running.
+* EC2 instance was relatively painless to get up and running. Still not running the docker image yet, but that shouldn't take too much more work. Then I have to think about "deployments", so maybe that means using an ASG and just killing the EC2 instance and restarting it, setting up a simple script to manually run, or doing something like Fargate (but have to evaluate cost).
+* Ya know what, I'm giving up on getting the EC2 instance to start my docker container at startup. I'll just make a script that auto-updates.
+* Damn, NAT Gateways are expensive. $2 for 1 day (0.045 per hour and I was running two NAT Gateways in each AZ by default)
 
 ## S3 Pusher
 

@@ -12,12 +12,12 @@ pub async fn get_last_update(client: &Client, bucket: &str) -> anyhow::Result<La
     // Get the last folder which is the latest cook
     let dir = match get_dir(client, bucket).await? {
         Some(d) => d,
-        None => bail!("No directories {}", bucket)
+        None => bail!("No directories in {}", bucket)
     };
 
     let obj = match get_last_obj(client, bucket, &dir).await? {
         Some(o) => o,
-        None => bail!("No objects {}/{}", bucket, dir)
+        None => bail!("No objects in {}/{}", bucket, dir)
     };
 
     let contents = read_obj(client, bucket, &obj).await?;
@@ -55,6 +55,9 @@ async fn get_dir(client: &Client, bucket: &str) -> anyhow::Result<Option<String>
 
         // Common prefixes with delimiter "/" returns the top level dirs
         let dirs = response.common_prefixes();
+        if dirs.len() == 0 {
+            break;
+        }
         let d = &dirs[dirs.len()-1];
         dir = d.prefix.clone();
     }

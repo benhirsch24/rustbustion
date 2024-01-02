@@ -24,9 +24,16 @@ tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", optional = true }
 xflags = "0.3.2"
 
+[[bin]]
+name = "webapp"
+
+[[bin]]
+name = "rustbustion"
+features = ["dep:bluer"]
+
 [target.'cfg(target_os = "macos")'.dependencies]
 rand = "0.8.5"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-bluer = { version = "0.16.1", features = ["full"] }
+bluer = { version = "0.16.1", features = ["full"], optional = true }
 modular-bitfield = "0.11.2"
