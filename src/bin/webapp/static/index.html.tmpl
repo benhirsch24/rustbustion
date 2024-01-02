@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Current Temp</title>
+
+    <!-- Pico.css -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
+    <style>
+      [data-theme="temp"] {
+        --primary: #e53935;
+        --progress-color: #e53935;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="container" data-theme="temp">
+      <article class="padding-large" style="text-align: center">
+        <h1>The current temperature is</h1>
+        <h2>{{temperature}}</h2>
+        <progress></progress>
+        <p>Last update: {{last_update}} ({{since}})</p>
+      </article>
+    </section>
+  </body>
+</html>
+

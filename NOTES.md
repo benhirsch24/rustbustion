@@ -1,5 +1,14 @@
 # Notes
 
+## WebApp
+
+* Decided to try out Axum as the web framework
+* Had some fun with figuring out how to navigate S3 "directories"
+* Eventually got it working. Can see where I'll need to refactor things around and share the update structs. Eventually.
+* Next up is HTML templating
+* Got that working and also refactored a bit which has made things nicer. I'm definitely getting more comfortable with Rust modules which I'm glad about.
+* Now trying to get a single EC2 instance up and running.
+
 ## S3 Pusher
 
 * Pretty easy after getting used to the Rust AWS client.
