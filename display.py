@@ -3,6 +3,7 @@ import urllib.request
 import digitalio
 from PIL import Image, ImageDraw, ImageFont
 import board
+import json
 
 from adafruit_rgb_display.rgb import color565
 from adafruit_rgb_display import st7789
@@ -34,31 +35,32 @@ height = display.width
 width = display.height
 image = Image.new("RGB", (240, 320))
 draw = ImageDraw.Draw(image)
-#draw.rectangle((0, 0, 90, 90), outline=0, fill=(255,0,0))
-#display.image(image, 0)
 padding = -2
 top = padding
 bottom = height - padding
 x = 40
 y = 80
-font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
+font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
 
 draw.rectangle((0, 0, 240, 320), outline=0, fill=0)
 
 try:
     while True:
-        draw.rectangle((0, 80, 240, 160), outline=0, fill=(0, 255, 0))
         f = urllib.request.urlopen("http://127.0.0.1:3000")
-        temp = f.read().decode("utf-8")
-        draw.text((x, y), "Temp: " + temp, font=font, fill="#FFFFFF")
-        coords = "X: " + str(x) + " Y: " + str(y)
-        draw.text((0, 0), coords, font=font, fill="#FFFFFF")
+        json_data = f.read().decode("utf-8")
+        data_dict = json.loads(json_data)
+
+        draw.text((x, y), "Temp: " + str(data_dict['temp']), font=font, fill="#FFFFFF")
+        coords = "X: " + str(x) + " Y: " + str(y) + " Status: " + str(data_dict['status'])
+        draw.text((0, 10), coords, font=font, fill="#FFFFFF")
         display.image(image, 180)
         draw.rectangle((0, 0, 240, 320), outline=0, fill=0)
         if buttonA.value and not buttonB.value:
-            y += 5
+            if y < 220:
+                y += 5
         if not buttonA.value and buttonB.value:
-            y -= 5
+            if y > 30:
+                y -= 5
         #time.sleep(0.1)
 except Exception as e:
     print('exception', e)

@@ -1,0 +1,12 @@
+[Unit]
+Description=Rustbustion Service
+
+[Service]
+ExecStart=/home/pi/rustbustion/target/debug/rustbustion bep-combustion
+WorkingDirectory=/home/pi/rustbustion
+Restart=always
+User=pi
+Group=pi
+
+[Install]
+WantedBy=multi-user.target

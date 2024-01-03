@@ -21,12 +21,56 @@ fn as_farenheit(c: f32) -> f32 {
     c * 1.8 + 32.0
 }
 
-#[derive(Debug, Clone)]
-struct TempSvc {
-    raw_temp: Arc<Mutex<f32>>,
+#[derive(Clone, Copy, Debug)]
+enum SvcStatus {
+    DISCOVERING,
+    CONNECTING,
+    CONNECTED,
+    RUNNING,
 }
 
-impl HyperService<Request<IncomingBody>> for TempSvc {
+impl std::fmt::Display for SvcStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let value = match self {
+            SvcStatus::DISCOVERING => "discovering".to_string(),
+            SvcStatus::CONNECTING => "connecting".to_string(),
+            SvcStatus::CONNECTED => "connected".to_string(),
+            SvcStatus::RUNNING => "running".to_string(),
+        };
+        write!(f, "{}", value)
+    }
+}
+
+#[derive(Debug)]
+struct SvcInner {
+    raw_temp: f32,
+    status: SvcStatus,
+}
+
+#[derive(Debug, Clone)]
+struct Svc {
+    inner: Arc<Mutex<SvcInner>>,
+}
+
+impl Svc {
+    pub fn get_status(&self) -> SvcStatus {
+        self.inner.lock().unwrap().status
+    }
+
+    pub fn get_raw_temp(&self) -> f32 {
+        self.inner.lock().unwrap().raw_temp
+    }
+
+    pub fn set_status(&self, status: SvcStatus) {
+        self.inner.lock().unwrap().status = status;
+    }
+
+    pub fn set_raw_temp(&self, raw_temp: f32) {
+        self.inner.lock().unwrap().raw_temp = raw_temp;
+    }
+}
+
+impl HyperService<Request<IncomingBody>> for Svc {
     type Response = Response<Full<Bytes>>;
     type Error = hyper::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
@@ -37,7 +81,9 @@ impl HyperService<Request<IncomingBody>> for TempSvc {
         }
 
         let res = match req.uri().path() {
-            "/" => mk_response(format!("{}", *self.raw_temp.lock().unwrap())),
+            "/" => {
+                mk_response(format!("{{ \"temp\": {}, \"status\": \"{}\" }}", self.get_raw_temp(), self.get_status()))
+            },
             _ => return Box::pin(async { mk_response("Whoopsie".into()) }),
         };
         Box::pin(async { res })
@@ -64,23 +110,25 @@ async fn main() -> anyhow::Result<()> {
         done_tx.send(true).expect("Send ctrlc");
     });
 
-    let svc = TempSvc{raw_temp: Arc::new(Mutex::new(0.0))};
-    let last_temp = svc.raw_temp.clone();
+    let svc = Svc{ inner: Arc::new(Mutex::new(SvcInner{raw_temp: 0.0, status: SvcStatus::DISCOVERING})) };
 
     // Start an HTTP server to serve requests for current temp data
     let addr: std::net::SocketAddr = ([127, 0, 0, 1], 3000).into();
     let listener: tokio::net::TcpListener = tokio::net::TcpListener::bind(addr).await.expect("Tcp listener");
-    tokio::spawn(async move {
-        loop {
-            let (tcp, _) = listener.accept().await.expect("Accept");
-            let io = hyper_util::rt::tokio::TokioIo::new(tcp);
-            let svc_clone = svc.clone();
-            tokio::task::spawn(async move {
-                if let Err(err) = http1::Builder::new().serve_connection(io, svc_clone).await
-                {
-                    error!("Error serving connection: {:?}", err);
-                }
-            });
+    tokio::spawn({
+        let svc = svc.clone();
+        async move {
+            loop {
+                let (tcp, _) = listener.accept().await.expect("Accept");
+                let io = hyper_util::rt::tokio::TokioIo::new(tcp);
+                let svc_clone = svc.clone();
+                tokio::task::spawn(async move {
+                    if let Err(err) = http1::Builder::new().serve_connection(io, svc_clone).await
+                    {
+                        error!("Error serving connection: {:?}", err);
+                    }
+                });
+            }
         }
     });
 
@@ -94,11 +142,15 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
+    svc.set_status(SvcStatus::CONNECTING);
+
     info!("Connecting to device");
     if let Err(e) = combustion.connect().await {
         error!("Could not connect to device: {:?}", e);
         return Err(e);
     }
+
+    svc.set_status(SvcStatus::CONNECTED);
 
     // Create the Pusher
     let (tx, mut rx) = tokio::sync::mpsc::channel(100);
@@ -129,9 +181,8 @@ async fn main() -> anyhow::Result<()> {
                 match combustion.get_raw_temp().await? {
                     Some(raw_temp_c) => {
                         info!("Raw temp deg C={} degF={}", raw_temp_c, as_farenheit(raw_temp_c));
-                        {
-                            *last_temp.lock().unwrap() = as_farenheit(raw_temp_c);
-                        }
+                        svc.set_status(SvcStatus::RUNNING);
+                        svc.set_raw_temp(as_farenheit(raw_temp_c));
                         if let Err(e) = tx.send(raw_temp_c).await {
                             error!("Failed to send raw temp={} entry={} to pusher: {}", raw_temp_c, i, e);
                         }

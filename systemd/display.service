@@ -1,0 +1,13 @@
+[Unit]
+Description=Display Service
+After=rustbustion.service
+
+[Service]
+ExecStart=python3 /home/pi/rustbustion/display.py
+WorkingDirectory=/home/pi/rustbustion
+Restart=always
+User=pi
+Group=pi
+
+[Install]
+WantedBy=multi-user.target

@@ -20,6 +20,18 @@ The Rust program uses the [Bluer](https://docs.rs/bluer) library which is the of
 
 I had to [upgrade BlueZ](https://scribles.net/updating-bluez-on-raspberry-pi-from-5-43-to-5-50/) including installing some dependencies.
 
+## Enabling the Service
+
+Copy `systemd/rustbustion.service` and `systemd/display.service` to `/etc/systemd/system/`, then
+
+```
+sudo systemctl daemon-reload
+sudo systemctl start rustbustion.service
+sudo systemctl start display.service
+```
+
+to start them, verify they work, then `sudo systemctl enable <both services>` to enable them to start at startup.
+
 ## Running on Mac
 
 There is a simple implementation for MacOS that returns fake values for the purposes of testing.
