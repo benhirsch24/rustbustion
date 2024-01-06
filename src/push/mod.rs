@@ -3,7 +3,7 @@ use aws_smithy_types::byte_stream::ByteStream;
 use bytes::Bytes;
 use chrono::prelude::*;
 
-const BATCH_SIZE: usize = 5;
+const BATCH_SIZE: usize = 1000;
 
 struct Update {
     temp: f32,

@@ -53,13 +53,16 @@ try:
         draw.text((x, y), "Temp: " + str(data_dict['temp']), font=font, fill="#FFFFFF")
         coords = "X: " + str(x) + " Y: " + str(y) + " Status: " + str(data_dict['status'])
         draw.text((0, 10), coords, font=font, fill="#FFFFFF")
+        if data_dict['s3']:
+            s3_text = "S3 Status: " + str(data_dict['s3'])
+            draw.text((0, 30), s3_text, font=font, fill="#FFFFFF")
         display.image(image, 180)
         draw.rectangle((0, 0, 240, 320), outline=0, fill=0)
         if buttonA.value and not buttonB.value:
             if y < 220:
                 y += 5
         if not buttonA.value and buttonB.value:
-            if y > 30:
+            if y > 50:
                 y -= 5
         #time.sleep(0.1)
 except Exception as e:

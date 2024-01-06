@@ -41,10 +41,29 @@ impl std::fmt::Display for SvcStatus {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+enum S3Status {
+    UNINIT,
+    WRITING,
+    ERROR,
+}
+
 #[derive(Debug)]
 struct SvcInner {
     raw_temp: f32,
     status: SvcStatus,
+    s3_status: S3Status,
+}
+
+impl std::fmt::Display for S3Status {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let value = match self {
+            S3Status::UNINIT => "uninitialized".to_string(),
+            S3Status::WRITING => "writing".to_string(),
+            S3Status::ERROR => "error".to_string(),
+        };
+        write!(f, "{}", value)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +72,15 @@ struct Svc {
 }
 
 impl Svc {
+    pub fn new() -> Svc {
+        Svc{
+            inner: Arc::new(Mutex::new(SvcInner{
+                raw_temp: 0.0,
+                status: SvcStatus::DISCOVERING,
+                s3_status: S3Status::UNINIT,
+            })),
+        }
+    }
     pub fn get_status(&self) -> SvcStatus {
         self.inner.lock().unwrap().status
     }
@@ -61,12 +89,20 @@ impl Svc {
         self.inner.lock().unwrap().raw_temp
     }
 
+    pub fn get_s3_status(&self) -> S3Status {
+        self.inner.lock().unwrap().s3_status
+    }
+
     pub fn set_status(&self, status: SvcStatus) {
         self.inner.lock().unwrap().status = status;
     }
 
     pub fn set_raw_temp(&self, raw_temp: f32) {
         self.inner.lock().unwrap().raw_temp = raw_temp;
+    }
+
+    pub fn set_s3_status(&self, status: S3Status) {
+        self.inner.lock().unwrap().s3_status = status;
     }
 }
 
@@ -82,7 +118,7 @@ impl HyperService<Request<IncomingBody>> for Svc {
 
         let res = match req.uri().path() {
             "/" => {
-                mk_response(format!("{{ \"temp\": {}, \"status\": \"{}\" }}", self.get_raw_temp(), self.get_status()))
+                mk_response(format!("{{ \"temp\": {}, \"status\": \"{}\", \"s3\": \"{}\" }}", self.get_raw_temp(), self.get_status(), self.get_s3_status()))
             },
             _ => return Box::pin(async { mk_response("Whoopsie".into()) }),
         };
@@ -110,7 +146,7 @@ async fn main() -> anyhow::Result<()> {
         done_tx.send(true).expect("Send ctrlc");
     });
 
-    let svc = Svc{ inner: Arc::new(Mutex::new(SvcInner{raw_temp: 0.0, status: SvcStatus::DISCOVERING})) };
+    let svc = Svc::new();
 
     // Start an HTTP server to serve requests for current temp data
     let addr: std::net::SocketAddr = ([127, 0, 0, 1], 3000).into();
@@ -154,26 +190,32 @@ async fn main() -> anyhow::Result<()> {
 
     // Create the Pusher
     let (tx, mut rx) = tokio::sync::mpsc::channel(100);
-    tokio::spawn(async move {
-        let mut pusher = Pusher::new();
-        if let Some(bucket) = flags.bucket {
-            let prefix = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
-            info!("Starting S3 pusher to {}/{}", bucket, prefix);
-            pusher.init(bucket, prefix).await;
-        }
-
-        let mut i = 0;
-        while let Some(t) = rx.recv().await {
-            // Do something
-            if let Err(e) = pusher.push(t).await {
-                error!("Failed to push t={} i={}: {}", t, i, e);
+    tokio::spawn({
+        let svc = svc.clone();
+        async move {
+            let mut pusher = Pusher::new();
+            if let Some(bucket) = flags.bucket {
+                let prefix = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+                info!("Starting S3 pusher to {}/{}", bucket, prefix);
+                pusher.init(bucket, prefix).await;
             }
-            i += 1;
+
+            let mut i = 0;
+            while let Some(t) = rx.recv().await {
+                // Do something
+                if let Err(e) = pusher.push(t).await {
+                    error!("Failed to push t={} i={}: {}", t, i, e);
+                    svc.set_s3_status(S3Status::ERROR);
+                } else {
+                    svc.set_s3_status(S3Status::WRITING);
+                }
+                i += 1;
+            }
         }
     });
 
     // Poll the thermometer and push the temps into the S3 Pusher
-    let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(2000));
+    let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(5000));
     let mut i = 0;
     loop {
         tokio::select! {
