@@ -53,6 +53,7 @@ async fn main() -> std::io::Result<()> {
         /// Bucket to upload data into
         required bucket: String
     };
+    env_logger::init();
 
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let client = Client::new(&config);

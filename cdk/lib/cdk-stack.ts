@@ -53,7 +53,7 @@ export class CombustionStack extends cdk.Stack {
       'set -euxo',
       `aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${imageRepo.repositoryUri}`,
       `docker pull ${imageRepo.repositoryUri}:latest`,
-      `docker run -p 80:8080 -d ${imageRepo.repositoryUri}:latest ${bucketName}`,
+      `docker run -p 80:8080 --rm -d ${imageRepo.repositoryUri}:latest ${bucketName}`,
       'EOF',
     );
 

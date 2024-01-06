@@ -1,28 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Current Temp</title>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Horizontal Thermometer</title>
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
 
-    <!-- Pico.css -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
-    <style>
-      [data-theme="temp"] {
-        --primary: #e53935;
-        --progress-color: #e53935;
-      }
-    </style>
-  </head>
-  <body>
-    <section class="container" data-theme="temp">
-      <article class="padding-large" style="text-align: center">
-        <h1>The current temperature is</h1>
-        <h2>{{temperature}}</h2>
-        <progress></progress>
-        <p>Last update: {{last_update}} ({{since}})</p>
-      </article>
-    </section>
-  </body>
+    .thermometer-container {
+      display: flex;
+      align-items: center;
+      width: 95%;
+    }
+
+    .thermometer {
+      position: relative;
+      width: 500px;
+      height: 30px;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .mercury {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background-image: linear-gradient(to right, #FFEBEB 0%, #FFEBEB 12.5%, #FFD6D6 12.5%, #FFD6D6 25%, #FFC1C1 25%, #FFC1C1 37.5%, #FFADAD 37.5%, #FFADAD 50%, #FF9999 50%, #FF9999 62.5%, #FF8484 62.5%, #FF8484 75%, #FF7070 75%, #FF7070 87.5%, #FF5C5C 87.5%, #FF5C5C 100%);
+      transition: width 0.5s;
+    }
+
+    .triangle {
+      width: 20px;
+      height: 30px;
+      background-color: #FF5C5C;
+      clip-path: polygon(0% 0%, 100% 50%, 0% 100%);
+    }
+
+    .temperature-labels {
+      display: flex;
+      justify-content: space-between;
+      width: 500px;
+      margin-top: 10px;
+    }
+
+    .label {
+      flex: 1;
+      text-align: center;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="thermometer-container">
+    <div class="thermometer">
+      <div class="mercury"></div>
+    </div>
+    <div class="triangle"></div>
+  </div>
+  <div class="temperature-labels">
+    <div class="label"></div>
+    <div class="label"></div>
+    <div class="label"></div>
+    <div class="label"></div>
+    <div class="label"></div>
+    <div class="label"></div>
+    <div class="label"></div>
+    <div class="label">{{temperature}}</div>
+  </div>
+  <p>Last update: {{last_update}} ({{since}})</p>
+</body>
 </html>
 

@@ -26,6 +26,8 @@ I had to [upgrade BlueZ](https://scribles.net/updating-bluez-on-raspberry-pi-fro
 
 ## Enabling the Service
 
+Edit `systemd/rustbustion.service` and find the `Enviroment` line. Edit the `AWS_PROFILE` line to point to your profile name (stored in `~/.aws/credentials`).
+
 Copy `systemd/rustbustion.service` and `systemd/display.service` to `/etc/systemd/system/`, then
 
 ```
