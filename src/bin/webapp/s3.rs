@@ -75,6 +75,7 @@ async fn get_last_obj(client: &Client, bucket: &str, dir: &str) -> anyhow::Resul
         .into_paginator()
         .send();
 
+
     // Get the last one (has the most recent update)
     while let Some(result) = response.next().await {
         let response = match result {

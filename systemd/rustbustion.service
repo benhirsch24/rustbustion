@@ -7,6 +7,7 @@ WorkingDirectory=/home/pi/rustbustion
 Restart=always
 User=pi
 Group=pi
+Environment="AWS_PROFILE=<YOUR PROFILE NAME>"
 
 [Install]
 WantedBy=multi-user.target
