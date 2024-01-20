@@ -101,7 +101,7 @@ export class CombustionStack extends cdk.Stack {
         command: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1" ],
         interval: cdk.Duration.minutes(1),
         retries: 3,
-        startPeriod: cdk.Duration.minutes(10),
+        startPeriod: cdk.Duration.minutes(5),
         timeout: cdk.Duration.seconds(5),
       },
       logging: ecs.LogDrivers.awsLogs({
