@@ -33,6 +33,14 @@ async fn index(data: web::Data<Arc<Mutex<State>>>) -> actix_web::Result<HttpResp
         .body(hb.render_template(templ, &data).map_err(|e| error::ErrorInternalServerError(e))?))
 }
 
+
+#[get("/health")]
+async fn health() -> actix_web::Result<HttpResponse> {
+    Ok(HttpResponse::Ok()
+        .content_type(ContentType::html())
+        .body("ok"))
+}
+
 struct State {
     client: Client,
     bucket: String,
@@ -63,6 +71,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(state.clone()))
             .service(index)
+            .service(health)
     })
     .bind(("0.0.0.0", 8080))?
     .run()

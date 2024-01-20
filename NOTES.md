@@ -10,6 +10,8 @@
 * EC2 instance was relatively painless to get up and running. Still not running the docker image yet, but that shouldn't take too much more work. Then I have to think about "deployments", so maybe that means using an ASG and just killing the EC2 instance and restarting it, setting up a simple script to manually run, or doing something like Fargate (but have to evaluate cost).
 * Ya know what, I'm giving up on getting the EC2 instance to start my docker container at startup. I'll just make a script that auto-updates.
 * Damn, NAT Gateways are expensive. $2 for 1 day (0.045 per hour and I was running two NAT Gateways in each AZ by default)
+* Realized I should've gone with ECS on EC2 to make it easy. There's actually no cost to ECS.
+* ChatGPT was not good at this AT ALL. Sorta got me there, but ended up mostly doing it myself from ECS CDK docs.
 
 ## S3 Pusher
 
