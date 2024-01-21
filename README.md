@@ -46,20 +46,6 @@ There is a simple implementation for MacOS that returns fake values for the purp
 
 This repo also contains a web application that will display the latest temperature data. The code is in `src/bin/webapp`.
 
-## CDK
-
-`cdk/` contains CDK code to stand up a self-contained stack in AWS. It stands up:
-
-1. An S3 bucket for the Raspberry Pi program to upload to.
-2. An ECR repository to push a Docker image to.
-3. An EC2 instance that pulls the Docker image and runs it, exposing port 80 for the website.
-
-`cdk bootstrap --context name=<YOUR NAME>` to bootstrap your AWS account.
-
-`cdk synth --context name=<YOUR NAME>` to synthesize the template.
-
-`cdk deploy --context name=<YOUR NAME>` to deploy the template. The S3 bucket is `<YOUR NAME>-combustion` which you can use for the Raspberry Pi program.
-
 ## Developing and Building
 
 For developing you can simply `cargo run --bin webapp <bucket name>` for running locally and open up http://127.0.0.1:8080.
@@ -67,14 +53,24 @@ For developing you can simply `cargo run --bin webapp <bucket name>` for running
 To build and push the docker image you can:
 
 ```
-docker build --tag webapp -f Dockerfile.webapp .
-aws ecr get-login-password --region <REGION> | docker login --username AWS --password-stdin <ACCOUNTID>.dkr.ecr.<REGION>.amazonaws.com
-docker tag <YOUR NAME>:latest <ACCOUNTID>.dkr.ecr.<REGION>.amazonaws.com/<YOUR NAME>:latest
-docker push <ACCOUNTID>.dkr.ecr.<REGION>.amazonaws.com/<YOUR NAME>:latest
+$ ./scripts/build_docker_webapp.sh <name>
 ```
 
-Replacing the values in the `<>` appropriately.
+Where `<name>` is what you provided to the CDK stack (and also assumes that's your AWS credentials profile name).
 
-## Running in the world
+Then follow the ECR instructions to push your locally tagged `webapp:latest` image to your ECR repository and update your service causing a deployment. You'll probably need to manually stop the previously running container because the t2.micro only has room for one container.
 
-Log into your EC2 instance using SSM and run the `/tmp/update.sh` script. On the first EC2 instance startup you will also have to `usermod -aG docker ssm-user` and log out and back in using SSM.
+## CDK
+
+`cdk/` contains CDK code to stand up a self-contained stack in AWS. It stands up:
+
+1. An S3 bucket for the Raspberry Pi program to upload to.
+2. An ECR repository to push a Docker image to.
+3. An autoscaling group with 1 t2.micro EC2 instance
+4. An ECS cluster that runs the webapp container on the EC2 instance.
+
+`cdk bootstrap --context name=<YOUR NAME>` to bootstrap your AWS account.
+
+`cdk synth --context name=<YOUR NAME>` to synthesize the template.
+
+`cdk deploy --context name=<YOUR NAME>` to deploy the template. The S3 bucket is `<YOUR NAME>-combustion` which you can use for the Raspberry Pi program.

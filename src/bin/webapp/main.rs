@@ -1,5 +1,6 @@
 use actix_web::{get, http::header::ContentType, error, web, App, HttpResponse, HttpServer};
 use aws_sdk_s3::Client;
+use log::{error, info};
 use chrono::prelude::*;
 use handlebars::Handlebars;
 use std::collections::BTreeMap;
@@ -16,10 +17,11 @@ fn as_farenheit(c: f32) -> f32 {
 async fn index(data: web::Data<Arc<Mutex<State>>>) -> actix_web::Result<HttpResponse> {
     let update = {
         let data = data.lock().unwrap();
-        get_last_update(&data.client, &data.bucket)
-            .await
-            .map_err(|e| error::ErrorInternalServerError(e))
-    }?;
+        if data.last_update.is_none() {
+            return Err(error::ErrorInternalServerError(anyhow::anyhow!("No update")));
+        }
+        data.last_update.clone().unwrap()
+    };
 
     let hb = Handlebars::new();
     let mut data = BTreeMap::new();
@@ -41,17 +43,14 @@ async fn health() -> actix_web::Result<HttpResponse> {
         .body("ok"))
 }
 
+#[derive(Default, Debug)]
 struct State {
-    client: Client,
-    bucket: String,
+    last_update: Option<LastUpdate>,
 }
 
 impl State {
-    pub fn new(client: Client, bucket: String) -> State {
-        State {
-            client,
-            bucket,
-        }
+    fn set_update(&mut self, update: LastUpdate) {
+        self.last_update.replace(update);
     }
 }
 
@@ -63,10 +62,32 @@ async fn main() -> std::io::Result<()> {
     };
     env_logger::init();
 
-    let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-    let client = Client::new(&config);
+    let state = Arc::new(Mutex::new(State::default()));
 
-    let state = Arc::new(Mutex::new(State::new(client, flags.bucket)));
+    tokio::spawn({
+        let state = state.clone();
+        async move {
+            let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
+            let client = Client::new(&config);
+            let bucket = flags.bucket;
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(60000));
+            loop {
+                tokio::select! {
+                    _ = interval.tick() => {
+                        let update = get_last_update(&client, &bucket).await;
+                        match update {
+                            Err(e) => error!("Error updating last temperature: {e:?}"),
+                            Ok(u) => {
+                                state.lock().unwrap().set_update(u);
+                                info!("Updated");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(state.clone()))

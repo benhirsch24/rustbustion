@@ -3,6 +3,7 @@ use anyhow::{anyhow, bail};
 use chrono::prelude::*;
 use bytes::{BytesMut};
 
+#[derive(Clone, Default, Debug)]
 pub struct LastUpdate {
     pub temp: f32,
     pub time: DateTime<FixedOffset>,
