@@ -1,0 +1,6 @@
+FROM amazonlinux:latest
+
+ADD ./webapp /webapp
+RUN chmod +x /webapp
+
+ENTRYPOINT ["/webapp"]

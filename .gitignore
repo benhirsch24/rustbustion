@@ -3,3 +3,6 @@
 *~
 a.out
 key.txt
+build_webapp.sh
+scripts/push.sh
+scripts/update.sh
